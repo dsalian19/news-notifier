@@ -74,6 +74,16 @@ Desktop-first, mobile secondary.
 Static seeded table. Populated once, never modified. Categories are hardcoded
 based on Guardian API sections, filtered by personal preference.
 
+#### Categories to support in V1 (guardian_key):
+- world
+- us-news
+- politics
+- business
+- technology
+- science
+- sport
+- culture
+
 ### UserCategory (join table)
 | Field       | Type      | Notes              |
 |-------------|-----------|--------------------|
