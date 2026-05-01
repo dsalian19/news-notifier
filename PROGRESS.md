@@ -34,7 +34,7 @@ All 5 migrations have been run against the local `news_notifier` database:
 | V4 | Create `category_digests` table | Applied |
 | V5 | Seed 8 v1 categories | Applied |
 
-**Note:** Migrations have NOT yet been run against the Render (production) database.
+**Note:** Migrations have NOT yet been run against the Render (production) database. They will run automatically when the backend is deployed to Render — Flyway executes on Spring Boot startup using the configured env vars.
 
 ### 5. Category Seed Data
 The following categories are seeded in the local database:
@@ -55,7 +55,7 @@ The following categories are seeded in the local database:
 ## What Needs To Be Done
 
 ### Immediate Next Steps
-- [ ] **Run migrations against Render DB** — connect using the external Render URL and apply V1–V5 so production schema matches local
+- [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
 - [ ] **Create Spring Boot main application class** — `backend/src/main/java/com/newsnotifier/NewsNotifierApplication.java`
 - [ ] **Implement JPA entity classes** — `User`, `Category`, `UserCategory`, `CategoryDigest` in `backend/.../model/`
 - [ ] **Implement Spring Data repositories** — one interface per entity in `backend/.../repository/`
