@@ -27,6 +27,20 @@
 4. Look up all users and their subscriptions
 5. Send notifications via Resend/Twilio based on user preferences
 
+## Database Migrations
+- Managed by Flyway; migration files live in `backend/src/main/resources/db/migration/`
+- Naming convention: `V{n}__{description}.sql` (e.g. `V1__create_users_table.sql`)
+- Flyway runs automatically on Spring Boot startup; also runnable standalone via `mvn flyway:migrate`
+- Never edit an already-applied migration — add a new versioned file instead
+
+## Local Development
+- Environment variables are loaded from `backend/.env` (gitignored — never committed)
+- Copy `backend/.env.example` to `backend/.env` and fill in local values to get started
+- Source env vars before running Maven: `source backend/.env`
+- Run migrations: `mvn -f backend/pom.xml flyway:migrate -Dflyway.url=$DATABASE_URL -Dflyway.user=$DB_USERNAME -Dflyway.password=$DB_PASSWORD`
+- Run backend: `mvn -f backend/pom.xml spring-boot:run`
+- Production env vars (Render DB credentials, API keys) are set in the Render dashboard only — never in files
+
 ## Conventions
 - Always use environment variables for API keys and secrets
 - Never hardcode credentials anywhere
