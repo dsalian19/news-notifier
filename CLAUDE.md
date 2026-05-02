@@ -36,7 +36,7 @@
 ## Local Development
 - Environment variables are loaded from `backend/.env` (gitignored — never committed)
 - Copy `backend/.env.example` to `backend/.env` and fill in local values to get started
-- Source env vars before running Maven: `source backend/.env`
+- Source env vars before running Maven: `set -a && source backend/.env && set +a` (`set -a` is required so vars are exported to the Maven subprocess — plain `source` won't work)
 - Run migrations: `mvn -f backend/pom.xml flyway:migrate -Dflyway.url=$DATABASE_URL -Dflyway.user=$DB_USERNAME -Dflyway.password=$DB_PASSWORD`
 - Run backend: `mvn -f backend/pom.xml spring-boot:run`
 - Production env vars (Render DB credentials, API keys) are set in the Render dashboard only — never in files

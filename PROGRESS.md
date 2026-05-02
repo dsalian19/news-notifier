@@ -13,7 +13,7 @@
 
 ### 2. Backend Build System (`backend/pom.xml`)
 - Spring Boot 3.3.5 parent (Java 17)
-- Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `postgresql` driver, `flyway-core`, `flyway-database-postgresql`
+- Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `postgresql` driver, `flyway-core`, `flyway-database-postgresql`, `lombok`
 - Flyway Maven plugin (10.20.1) configured for standalone migration runs
 
 ### 3. PostgreSQL Database — Local + Render
@@ -36,6 +36,22 @@ All 5 migrations have been run against the local `news_notifier` database:
 
 **Note:** Migrations have NOT yet been run against the Render (production) database. They will run automatically when the backend is deployed to Render — Flyway executes on Spring Boot startup using the configured env vars.
 
+### 6. Backend Java Layer
+- `NewsNotifierApplication.java` — Spring Boot entry point (`@SpringBootApplication`)
+- JPA entities in `backend/.../model/`:
+  - `User` — maps `users` table; `@CreationTimestamp` / `@UpdateTimestamp` for audit fields
+  - `Category` — maps `categories` table (read-only seeded data)
+  - `UserCategory` — maps `user_categories` as a first-class entity (own `id` + `createdAt`)
+  - `CategoryDigest` — maps `category_digests`; `article_urls` JSONB via `StringListConverter`
+- `StringListConverter` in `config/` — JPA `AttributeConverter<List<String>, String>` using Jackson
+- Spring Data repositories in `backend/.../repository/`:
+  - `UserRepository` — `findByEmail`
+  - `CategoryRepository` — `findByGuardianKey`
+  - `UserCategoryRepository` — `findByUser`, `findByUserAndCategory`
+  - `CategoryDigestRepository` — `findByCategoryAndDigestDate`, `findByCategoryIn`
+- All entities use Lombok (`@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`) and `@UuidGenerator` for UUID primary keys
+- Verified: app boots cleanly, Flyway validates all 5 migrations, Hibernate validates all 4 entities against the schema
+
 ### 5. Category Seed Data
 The following categories are seeded in the local database:
 
@@ -55,10 +71,8 @@ The following categories are seeded in the local database:
 ## What Needs To Be Done
 
 ### Immediate Next Steps
+- [ ] **Implement auth layer** — Spring Security + JWT (see Auth Layer section below)
 - [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
-- [ ] **Create Spring Boot main application class** — `backend/src/main/java/com/newsnotifier/NewsNotifierApplication.java`
-- [ ] **Implement JPA entity classes** — `User`, `Category`, `UserCategory`, `CategoryDigest` in `backend/.../model/`
-- [ ] **Implement Spring Data repositories** — one interface per entity in `backend/.../repository/`
 
 ### Auth Layer
 - [ ] Add Spring Security + JWT dependencies to `pom.xml`
@@ -102,8 +116,9 @@ The following categories are seeded in the local database:
 ## Environment Setup (for new sessions)
 
 ```bash
-# Load local env vars before running any Maven commands
-source backend/.env
+# Load and export local env vars before running any Maven commands
+# set -a is required so vars are inherited by the Maven subprocess
+set -a && source backend/.env && set +a
 
 # Run backend locally
 mvn -f backend/pom.xml spring-boot:run
