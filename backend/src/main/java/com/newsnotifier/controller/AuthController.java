@@ -1,6 +1,7 @@
 package com.newsnotifier.controller;
 
 import com.newsnotifier.dto.AuthResponse;
+import com.newsnotifier.dto.LoginRequest;
 import com.newsnotifier.dto.RegisterRequest;
 import com.newsnotifier.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -18,5 +19,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse register(@RequestBody RegisterRequest request) {
         return userService.register(request);
+    }
+
+    @PostMapping("/login")
+    public AuthResponse login(@RequestBody LoginRequest request) {
+        return userService.login(request);
     }
 }

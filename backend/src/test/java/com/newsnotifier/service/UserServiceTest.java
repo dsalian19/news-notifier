@@ -1,6 +1,7 @@
 package com.newsnotifier.service;
 
 import com.newsnotifier.dto.AuthResponse;
+import com.newsnotifier.dto.LoginRequest;
 import com.newsnotifier.dto.RegisterRequest;
 import com.newsnotifier.model.User;
 import com.newsnotifier.repository.UserRepository;
@@ -72,5 +73,51 @@ class UserServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void login_success() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        User existing = User.builder()
+                .id(UUID.randomUUID())
+                .email("user@example.com")
+                .passwordHash(encoder.encode("secret123"))
+                .phoneNumber("555-1234")
+                .notifyEmail(false)
+                .notifySms(false)
+                .build();
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(existing));
+
+        AuthResponse response = userService.login(new LoginRequest("user@example.com", "secret123"));
+
+        assertNotNull(response.token());
+        assertEquals("user@example.com", response.email());
+    }
+
+    @Test
+    void login_wrongPassword_throws401() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        User existing = User.builder()
+                .id(UUID.randomUUID())
+                .email("user@example.com")
+                .passwordHash(encoder.encode("secret123"))
+                .phoneNumber("555-1234")
+                .build();
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(existing));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userService.login(new LoginRequest("user@example.com", "wrongpassword")));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+    }
+
+    @Test
+    void login_unknownEmail_throws401() {
+        when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userService.login(new LoginRequest("nobody@example.com", "secret123")));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
 }

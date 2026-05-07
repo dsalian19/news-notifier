@@ -1,6 +1,7 @@
 package com.newsnotifier.service;
 
 import com.newsnotifier.dto.AuthResponse;
+import com.newsnotifier.dto.LoginRequest;
 import com.newsnotifier.dto.RegisterRequest;
 import com.newsnotifier.model.User;
 import com.newsnotifier.repository.UserRepository;
@@ -33,6 +34,17 @@ public class UserService {
                 .build();
 
         userRepository.save(user);
+
+        return buildAuthResponse(user);
+    }
+
+    public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
 
         return buildAuthResponse(user);
     }
