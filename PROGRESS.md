@@ -71,29 +71,31 @@ The following categories are seeded in the local database:
 ## What Needs To Be Done
 
 ### Immediate Next Steps
-- [ ] **Complete auth layer** — register + login endpoints (Increments 3–5 remaining)
+- [ ] **User & category endpoints** — subscribe/unsubscribe, list subscriptions, update preferences
 - [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
 
-### Auth Layer
+### Auth Layer ✅ Complete
 - [x] Add Spring Security + JJWT dependencies to `pom.xml`
 - [x] `JwtUtil` — token generation, email extraction, validation (1-day expiry, HMAC-SHA256)
 - [x] `UserDetailsServiceImpl` — loads user by email for Spring Security
 - [x] `JwtAuthFilter` — reads `Authorization: Bearer` header on every request, sets security context
-- [x] `SecurityConfig` — stateless session, CSRF off, filter chain wired, `BCryptPasswordEncoder` bean; currently `permitAll` (will lock down in Increment 5)
-- [ ] `POST /auth/register` — create user (email, password, phone number), return JWT + user info
-- [ ] `POST /auth/login` — verify credentials, return JWT + user info
-- [ ] Lock down protected routes (`anyRequest().authenticated()`)
+- [x] `SecurityConfig` — stateless session, CSRF off, `/auth/**` and `/error` open, all other routes require JWT; returns 401 (not 403) for unauthenticated requests
+- [x] `POST /auth/register` — accepts email, password, phone number; BCrypt hashes password; returns JWT + user info; 409 on duplicate email
+- [x] `POST /auth/login` — verifies credentials; returns JWT + user info; 401 on bad email or password (same message to prevent email enumeration)
+- [x] DTOs: `RegisterRequest`, `LoginRequest`, `AuthResponse`
+- [x] Unit tests: `JwtUtilTest` (3 tests), `UserServiceTest` (5 tests)
 
 ### User Features
-- [ ] `POST /api/users/categories` — subscribe to categories
-- [ ] `DELETE /api/users/categories/{id}` — unsubscribe
-- [ ] `GET /api/users/categories` — list subscriptions
-- [ ] `PATCH /api/users/preferences` — update notify_email / notify_sms
+- [ ] `GET /categories` — list all available categories (authenticated)
+- [ ] `GET /user/categories` — list subscribed categories for current user
+- [ ] `POST /user/categories/{categoryId}` — subscribe to a category
+- [ ] `DELETE /user/categories/{categoryId}` — unsubscribe from a category
+- [ ] `GET /user/me` — return current user profile
+- [ ] `PUT /user/preferences` — update notify_email, notify_sms, phone_number
 
 ### Digest / Portal Features
-- [ ] `GET /api/digests` — list digests for the user's categories (filterable by date, category)
-- [ ] `GET /api/digests/{id}` — full digest detail with article URLs
-- [ ] `GET /api/categories` — list all available categories
+- [ ] `GET /digests` — list digests for the user's subscribed categories (filterable by `?category=` and `?date=`)
+- [ ] `GET /digests/{id}` — full digest detail with long summary and article URLs
 
 ### Cron Job
 - [ ] Guardian API client (fetch articles per category)

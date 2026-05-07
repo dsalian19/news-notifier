@@ -36,6 +36,8 @@
 ## Local Development
 - Environment variables are loaded from `backend/.env` (gitignored — never committed)
 - Copy `backend/.env.example` to `backend/.env` and fill in local values to get started
+- Required env vars: `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS`
+- Generate a JWT secret: `openssl rand -base64 64 | tr -d '\n'`
 - Source env vars before running Maven: `set -a && source backend/.env && set +a` (`set -a` is required so vars are exported to the Maven subprocess — plain `source` won't work)
 - Run migrations: `mvn -f backend/pom.xml flyway:migrate -Dflyway.url=$DATABASE_URL -Dflyway.user=$DB_USERNAME -Dflyway.password=$DB_PASSWORD`
 - Run backend: `mvn -f backend/pom.xml spring-boot:run`
