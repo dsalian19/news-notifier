@@ -36,7 +36,7 @@ All 5 migrations have been run against the local `news_notifier` database:
 
 **Note:** Migrations have NOT yet been run against the Render (production) database. They will run automatically when the backend is deployed to Render — Flyway executes on Spring Boot startup using the configured env vars.
 
-### 6. Backend Java Layer
+### 5. Backend Java Layer
 - `NewsNotifierApplication.java` — Spring Boot entry point (`@SpringBootApplication`)
 - JPA entities in `backend/.../model/`:
   - `User` — maps `users` table; `@CreationTimestamp` / `@UpdateTimestamp` for audit fields
@@ -52,7 +52,7 @@ All 5 migrations have been run against the local `news_notifier` database:
 - All entities use Lombok (`@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`) and `@UuidGenerator` for UUID primary keys
 - Verified: app boots cleanly, Flyway validates all 5 migrations, Hibernate validates all 4 entities against the schema
 
-### 5. Category Seed Data
+### 6. Category Seed Data
 The following categories are seeded in the local database:
 
 | Name | Guardian API Key |
@@ -66,6 +66,16 @@ The following categories are seeded in the local database:
 | Sport | sport |
 | Culture | culture |
 
+### 7. Auth Layer
+- `JwtUtil` in `security/` — generates and validates JWT tokens (HMAC-SHA256, 1-day expiry); reads secret and expiry from env vars
+- `UserDetailsServiceImpl` in `security/` — loads user by email via `UserRepository` for Spring Security
+- `JwtAuthFilter` in `security/` — `OncePerRequestFilter`; reads `Authorization: Bearer` header, validates token, sets security context
+- `SecurityConfig` in `config/` — stateless session, CSRF disabled, `/auth/**` and `/error` open, all other routes require a valid JWT; returns 401 (not 403) for unauthenticated requests; `BCryptPasswordEncoder` bean
+- `AuthController` in `controller/` — `POST /auth/register` (201), `POST /auth/login` (200)
+- `UserService` in `service/` — `register()` BCrypt-hashes password, rejects duplicate email with 409; `login()` verifies password; both failure cases return identical 401 to prevent email enumeration
+- DTOs in `dto/`: `RegisterRequest` (email, password, phoneNumber), `LoginRequest` (email, password), `AuthResponse` (token, id, email, notifyEmail, notifySms)
+- Unit tests: `JwtUtilTest` (3 tests), `UserServiceTest` (5 tests)
+
 ---
 
 ## What Needs To Be Done
@@ -73,17 +83,6 @@ The following categories are seeded in the local database:
 ### Immediate Next Steps
 - [ ] **User & category endpoints** — subscribe/unsubscribe, list subscriptions, update preferences
 - [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
-
-### Auth Layer ✅ Complete
-- [x] Add Spring Security + JJWT dependencies to `pom.xml`
-- [x] `JwtUtil` — token generation, email extraction, validation (1-day expiry, HMAC-SHA256)
-- [x] `UserDetailsServiceImpl` — loads user by email for Spring Security
-- [x] `JwtAuthFilter` — reads `Authorization: Bearer` header on every request, sets security context
-- [x] `SecurityConfig` — stateless session, CSRF off, `/auth/**` and `/error` open, all other routes require JWT; returns 401 (not 403) for unauthenticated requests
-- [x] `POST /auth/register` — accepts email, password, phone number; BCrypt hashes password; returns JWT + user info; 409 on duplicate email
-- [x] `POST /auth/login` — verifies credentials; returns JWT + user info; 401 on bad email or password (same message to prevent email enumeration)
-- [x] DTOs: `RegisterRequest`, `LoginRequest`, `AuthResponse`
-- [x] Unit tests: `JwtUtilTest` (3 tests), `UserServiceTest` (5 tests)
 
 ### User Features
 - [ ] `GET /categories` — list all available categories (authenticated)
