@@ -13,7 +13,7 @@
 
 ### 2. Backend Build System (`backend/pom.xml`)
 - Spring Boot 3.3.5 parent (Java 17)
-- Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `postgresql` driver, `flyway-core`, `flyway-database-postgresql`, `lombok`
+- Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `postgresql` driver, `flyway-core`, `flyway-database-postgresql`, `lombok`, `jjwt-api/impl/jackson` (0.12.6)
 - Flyway Maven plugin (10.20.1) configured for standalone migration runs
 
 ### 3. PostgreSQL Database — Local + Render
@@ -71,14 +71,18 @@ The following categories are seeded in the local database:
 ## What Needs To Be Done
 
 ### Immediate Next Steps
-- [ ] **Implement auth layer** — Spring Security + JWT (see Auth Layer section below)
-- [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
+- [ ] **Complete auth layer** — register + login endpoints (Increments 3–5 remaining)
+- [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
 
 ### Auth Layer
-- [ ] Add Spring Security + JWT dependencies to `pom.xml`
-- [ ] Implement JWT token generation and validation (`security/`)
-- [ ] Implement `POST /api/auth/register` and `POST /api/auth/login` endpoints
-- [ ] Implement authentication filter and security config (`config/`)
+- [x] Add Spring Security + JJWT dependencies to `pom.xml`
+- [x] `JwtUtil` — token generation, email extraction, validation (1-day expiry, HMAC-SHA256)
+- [x] `UserDetailsServiceImpl` — loads user by email for Spring Security
+- [x] `JwtAuthFilter` — reads `Authorization: Bearer` header on every request, sets security context
+- [x] `SecurityConfig` — stateless session, CSRF off, filter chain wired, `BCryptPasswordEncoder` bean; currently `permitAll` (will lock down in Increment 5)
+- [ ] `POST /auth/register` — create user (email, password, phone number), return JWT + user info
+- [ ] `POST /auth/login` — verify credentials, return JWT + user info
+- [ ] Lock down protected routes (`anyRequest().authenticated()`)
 
 ### User Features
 - [ ] `POST /api/users/categories` — subscribe to categories
