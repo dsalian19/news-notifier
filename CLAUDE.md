@@ -47,3 +47,20 @@
 - Always use environment variables for API keys and secrets
 - Never hardcode credentials anywhere
 - Ask before adding new dependencies
+
+## API & Backend Conventions
+- Controllers are thin: extract email via `principal.getName()`, delegate everything to a service
+- Authenticated user identity: inject `Principal` in controller methods; `principal.getName()` returns the email stored in the JWT subject claim
+- Services throw `ResponseStatusException(HttpStatus.XXX, "message")` for all HTTP errors — no custom exception classes
+- DTOs are Java Records (immutable, no boilerplate)
+- `guardian_key` is never exposed in API responses — it is an internal detail used only by the cron job
+
+## Settings Page API Pattern
+- For settings where the user configures a set of items (e.g. category subscriptions), use a single **bulk replace** `PUT` endpoint that receives the full desired state
+- Avoid per-item POST/DELETE toggles for settings pages: they create race conditions if the user toggles quickly, require debouncing on the frontend, and add complexity for no benefit
+- The current user's notification preferences (`PUT /user/preferences`) and category subscriptions (`PUT /user/categories`) both follow this full-replace pattern
+
+## Known Compilation Gotcha
+- Lombok generates getters, setters, and builders via annotation processing at compile time
+- If any file has an unresolved annotation (e.g. `@ResponseStatus(HttpStatus.CREATED)` with a missing `HttpStatus` import), it can disrupt the annotation processing pipeline and cause Lombok to fail across all entity files in the same compilation run
+- Fix: always import `org.springframework.http.HttpStatus` when using `@ResponseStatus`

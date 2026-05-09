@@ -172,3 +172,55 @@ are both set to "No updates today" and article_urls is an empty array.
 4. Frontend — pages, components, connect to backend
 5. Testing and iteration
 6. Deployment
+
+---
+
+## Architecture Decisions
+
+### Category subscription endpoint: bulk replace (`PUT /user/categories`) over per-item toggle (POST/DELETE)
+
+**Decision:** A single `PUT /user/categories` endpoint receives the full desired list of category IDs and replaces all subscriptions atomically.
+
+**Rejected alternative:** Individual `POST /user/categories/{id}` (subscribe) and `DELETE /user/categories/{id}` (unsubscribe) endpoints, toggled on each checkbox click.
+
+**Why:** The per-item toggle approach creates a race condition on the frontend. If the user rapidly checks and unchecks a box, multiple requests fire concurrently and can arrive at the server out of order — leaving the database in a state that doesn't match the UI. The fix (debouncing) adds meaningful frontend complexity. Since the Settings page manages subscriptions as a set configured all at once, the bulk replace is a natural fit: the user toggles checkboxes freely with zero API calls, then hits Save to send the final state in a single request. No race conditions, no debouncing, no 409 conflict handling.
+
+---
+
+### Notification preferences: full replace, both fields always required
+
+**Decision:** `PUT /user/preferences` always receives both `notifyEmail` and `notifySms`, even if only one changed.
+
+**Rejected alternative:** A `PATCH` endpoint accepting only the fields that changed.
+
+**Why:** Partial update (PATCH) requires the backend to distinguish "field not sent" from "field explicitly set to false" — non-trivial for booleans. The Settings page always shows both checkboxes and sends both values on submit, so the full-replace pattern fits naturally with zero added complexity.
+
+---
+
+### Service split: `CategoryService` + `UserService` extensions
+
+**Decision:** All category-related logic (listing categories, listing subscriptions, bulk replace) lives in `CategoryService`. User profile and preference logic stays in `UserService`.
+
+**Rejected alternative:** Putting all new logic in `UserService`.
+
+**Why:** `UserService` would grow large and mix concerns. Keeping category logic in its own service makes each class focused on one domain. A third `SubscriptionService` was also considered but rejected as over-engineering for this project's size.
+
+**Cross-service dependency:** `CategoryService` injects `UserRepository` directly rather than calling `UserService`. This avoids a potential circular dependency (if `UserService` ever needs `CategoryService`) and keeps dependencies explicit.
+
+---
+
+### Controller identity extraction: `Principal` parameter
+
+**Decision:** Controller methods accept a `Principal` parameter injected by Spring. The current user's email is extracted via `principal.getName()`.
+
+**Rejected alternatives:**
+- `@AuthenticationPrincipal UserDetails userDetails` — also valid but more coupled to Spring Security internals. Since `UserDetails` in this project carries no more information than the email, `Principal` is simpler.
+- `SecurityContextHolder.getContext().getAuthentication()` inside services — hides an implicit dependency and makes services harder to unit test (requires mocking the security context).
+
+---
+
+### `guardian_key` excluded from `CategoryResponse`
+
+**Decision:** `CategoryResponse` exposes only `id` and `name`. The `guardian_key` field is never returned by any API endpoint.
+
+**Why:** `guardian_key` is an internal implementation detail used only by the cron job to call the Guardian API. Exposing it in responses leaks an internal concern to the frontend and is unnecessary.

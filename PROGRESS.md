@@ -76,21 +76,45 @@ The following categories are seeded in the local database:
 - DTOs in `dto/`: `RegisterRequest` (email, password, phoneNumber), `LoginRequest` (email, password), `AuthResponse` (token, id, email, notifyEmail, notifySms)
 - Unit tests: `JwtUtilTest` (3 tests), `UserServiceTest` (5 tests)
 
+### 8. User & Category API Layer
+All 5 endpoints are protected (JWT required). Controllers are thin — they extract the current user's email via `principal.getName()` and delegate to a service.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/categories` | List all 8 seeded categories |
+| GET | `/user/me` | Current user profile (id, email, phoneNumber, notifyEmail, notifySms) |
+| GET | `/user/categories` | User's currently subscribed categories |
+| PUT | `/user/categories` | Replace all subscriptions (full desired state sent as `{ categoryIds: [...] }`) |
+| PUT | `/user/preferences` | Update notification preferences (`{ notifyEmail, notifySms }`) |
+
+**New files:**
+- `controller/CategoryController.java` — handles `GET /categories`
+- `controller/UserController.java` — handles all `/user/**` routes
+- `service/CategoryService.java` — category listing, subscription listing, bulk replace logic
+- `dto/CategoryResponse.java` — `record(UUID id, String name)`
+- `dto/UserProfileResponse.java` — `record(UUID id, String email, String phoneNumber, boolean notifyEmail, boolean notifySms)`
+- `dto/UpdateCategoriesRequest.java` — `record(List<UUID> categoryIds)`
+- `dto/UpdatePreferencesRequest.java` — `record(boolean notifyEmail, boolean notifySms)`
+
+**Modified files:**
+- `service/UserService.java` — added `getProfile()` and `updatePreferences()`
+
+**Unit tests:** `CategoryServiceTest` (4 tests covering `replaceSubscriptions` happy path, invalid category ID, user not found, and empty list)
+
 ---
 
 ## What Needs To Be Done
 
 ### Immediate Next Steps
-- [ ] **User & category endpoints** — subscribe/unsubscribe, list subscriptions, update preferences
+- [ ] **Digest endpoints** — `GET /digests` and `GET /digests/{id}` for the portal
 - [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
 
 ### User Features
-- [ ] `GET /categories` — list all available categories (authenticated)
-- [ ] `GET /user/categories` — list subscribed categories for current user
-- [ ] `POST /user/categories/{categoryId}` — subscribe to a category
-- [ ] `DELETE /user/categories/{categoryId}` — unsubscribe from a category
-- [ ] `GET /user/me` — return current user profile
-- [ ] `PUT /user/preferences` — update notify_email, notify_sms, phone_number
+- [x] `GET /categories` — list all available categories (authenticated)
+- [x] `GET /user/categories` — list subscribed categories for current user
+- [x] `PUT /user/categories` — bulk replace subscriptions (full desired state)
+- [x] `GET /user/me` — return current user profile
+- [x] `PUT /user/preferences` — update notify_email, notify_sms
 
 ### Digest / Portal Features
 - [ ] `GET /digests` — list digests for the user's subscribed categories (filterable by `?category=` and `?date=`)
