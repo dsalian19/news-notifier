@@ -3,6 +3,7 @@ package com.newsnotifier.service;
 import com.newsnotifier.dto.AuthResponse;
 import com.newsnotifier.dto.LoginRequest;
 import com.newsnotifier.dto.RegisterRequest;
+import com.newsnotifier.dto.UserProfileResponse;
 import com.newsnotifier.model.User;
 import com.newsnotifier.repository.UserRepository;
 import com.newsnotifier.security.JwtUtil;
@@ -47,6 +48,13 @@ public class UserService {
         }
 
         return buildAuthResponse(user);
+    }
+
+    public UserProfileResponse getProfile(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return new UserProfileResponse(user.getId(), user.getEmail(), user.getPhoneNumber(),
+                user.isNotifyEmail(), user.isNotifySms());
     }
 
     public AuthResponse buildAuthResponse(User user) {
