@@ -1,5 +1,6 @@
 package com.newsnotifier.controller;
 
+import com.newsnotifier.dto.CategoryResponse;
 import com.newsnotifier.dto.UserProfileResponse;
 import com.newsnotifier.service.CategoryService;
 import com.newsnotifier.service.UserService;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/user")
@@ -19,5 +21,10 @@ public class UserController {
     @GetMapping("/me")
     public UserProfileResponse getMe(Principal principal) {
         return userService.getProfile(principal.getName());
+    }
+
+    @GetMapping("/categories")
+    public List<CategoryResponse> getMyCategories(Principal principal) {
+        return categoryService.getUserCategories(principal.getName());
     }
 }
