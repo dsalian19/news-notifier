@@ -1,6 +1,7 @@
 package com.newsnotifier.controller;
 
 import com.newsnotifier.dto.CategoryResponse;
+import com.newsnotifier.dto.UpdateCategoriesRequest;
 import com.newsnotifier.dto.UserProfileResponse;
 import com.newsnotifier.service.CategoryService;
 import com.newsnotifier.service.UserService;
@@ -26,5 +27,10 @@ public class UserController {
     @GetMapping("/categories")
     public List<CategoryResponse> getMyCategories(Principal principal) {
         return categoryService.getUserCategories(principal.getName());
+    }
+
+    @PutMapping("/categories")
+    public void replaceSubscriptions(@RequestBody UpdateCategoriesRequest request, Principal principal) {
+        categoryService.replaceSubscriptions(principal.getName(), request.categoryIds());
     }
 }
