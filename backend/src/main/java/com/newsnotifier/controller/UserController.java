@@ -2,6 +2,7 @@ package com.newsnotifier.controller;
 
 import com.newsnotifier.dto.CategoryResponse;
 import com.newsnotifier.dto.UpdateCategoriesRequest;
+import com.newsnotifier.dto.UpdatePreferencesRequest;
 import com.newsnotifier.dto.UserProfileResponse;
 import com.newsnotifier.service.CategoryService;
 import com.newsnotifier.service.UserService;
@@ -32,5 +33,10 @@ public class UserController {
     @PutMapping("/categories")
     public void replaceSubscriptions(@RequestBody UpdateCategoriesRequest request, Principal principal) {
         categoryService.replaceSubscriptions(principal.getName(), request.categoryIds());
+    }
+
+    @PutMapping("/preferences")
+    public UserProfileResponse updatePreferences(@RequestBody UpdatePreferencesRequest request, Principal principal) {
+        return userService.updatePreferences(principal.getName(), request);
     }
 }

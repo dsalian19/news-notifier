@@ -3,6 +3,7 @@ package com.newsnotifier.service;
 import com.newsnotifier.dto.AuthResponse;
 import com.newsnotifier.dto.LoginRequest;
 import com.newsnotifier.dto.RegisterRequest;
+import com.newsnotifier.dto.UpdatePreferencesRequest;
 import com.newsnotifier.dto.UserProfileResponse;
 import com.newsnotifier.model.User;
 import com.newsnotifier.repository.UserRepository;
@@ -53,6 +54,16 @@ public class UserService {
     public UserProfileResponse getProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return new UserProfileResponse(user.getId(), user.getEmail(), user.getPhoneNumber(),
+                user.isNotifyEmail(), user.isNotifySms());
+    }
+
+    public UserProfileResponse updatePreferences(String email, UpdatePreferencesRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setNotifyEmail(request.notifyEmail());
+        user.setNotifySms(request.notifySms());
+        userRepository.save(user);
         return new UserProfileResponse(user.getId(), user.getEmail(), user.getPhoneNumber(),
                 user.isNotifyEmail(), user.isNotifySms());
     }
