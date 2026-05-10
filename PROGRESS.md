@@ -101,12 +101,29 @@ All 5 endpoints are protected (JWT required). Controllers are thin — they extr
 
 **Unit tests:** `CategoryServiceTest` (4 tests covering `replaceSubscriptions` happy path, invalid category ID, user not found, and empty list)
 
+### 9. Digest API Layer
+Two authenticated endpoints for the portal.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/digests` | List digests for subscribed categories; optional `?categoryId=`, `?date=` (ISO), `?keyword=` filters; ordered by date desc |
+| GET | `/digests/{id}` | Full digest detail; 404 if not found or user not subscribed to that category |
+
+**New files:**
+- `dto/DigestResponse.java` — single record used by both endpoints: `id`, `categoryId`, `categoryName`, `digestDate`, `shortSummary`, `longSummary`, `articleUrls`
+- `service/DigestService.java` — `getDigests()` (with all filter combos) and `getDigestById()`; empty subscription list short-circuits before hitting the DB
+- `controller/DigestController.java` — thin controller; `@DateTimeFormat(iso = ISO.DATE)` handles `LocalDate` query param parsing
+
+**Modified files:**
+- `repository/CategoryDigestRepository.java` — added `findForUserCategories` `@Query` JPQL method; single method covers all 4 filter combinations via nullable params
+
+**Unit tests:** `DigestServiceTest` (9 tests covering all filter combos, empty subscriptions, detail happy path, detail not-found, detail not-subscribed)
+
 ---
 
 ## What Needs To Be Done
 
 ### Immediate Next Steps
-- [ ] **Digest endpoints** — `GET /digests` and `GET /digests/{id}` for the portal
 - [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
 
 ### User Features
@@ -117,8 +134,8 @@ All 5 endpoints are protected (JWT required). Controllers are thin — they extr
 - [x] `PUT /user/preferences` — update notify_email, notify_sms
 
 ### Digest / Portal Features
-- [ ] `GET /digests` — list digests for the user's subscribed categories (filterable by `?category=` and `?date=`)
-- [ ] `GET /digests/{id}` — full digest detail with long summary and article URLs
+- [x] `GET /digests` — list digests for the user's subscribed categories (filterable by `?categoryId=`, `?date=`, `?keyword=`)
+- [x] `GET /digests/{id}` — full digest detail with long summary and article URLs
 
 ### Cron Job
 - [ ] Guardian API client (fetch articles per category)
