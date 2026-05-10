@@ -60,6 +60,13 @@
 - Avoid per-item POST/DELETE toggles for settings pages: they create race conditions if the user toggles quickly, require debouncing on the frontend, and add complexity for no benefit
 - The current user's notification preferences (`PUT /user/preferences`) and category subscriptions (`PUT /user/categories`) both follow this full-replace pattern
 
+## Deployment
+- Backend is deployed to Render at `https://news-notifier-backend.onrender.com`
+- Dockerfile lives at `backend/Dockerfile` (multi-stage: Maven build → slim JRE runtime)
+- Render is configured with Docker context `./backend` and Dockerfile path `./backend/Dockerfile`
+- Auto-deploys on every push to `main`
+- All production env vars are set in the Render dashboard only — never in files
+
 ## Known Compilation Gotcha
 - Lombok generates getters, setters, and builders via annotation processing at compile time
 - If any file has an unresolved annotation (e.g. `@ResponseStatus(HttpStatus.CREATED)` with a missing `HttpStatus` import), it can disrupt the annotation processing pipeline and cause Lombok to fail across all entity files in the same compilation run

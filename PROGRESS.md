@@ -119,43 +119,47 @@ Two authenticated endpoints for the portal.
 
 **Unit tests:** `DigestServiceTest` (9 tests covering all filter combos, empty subscriptions, detail happy path, detail not-found, detail not-subscribed)
 
+### 10. Backend Deployment
+- Deployed to Render as a Docker web service at `https://news-notifier-backend.onrender.com`
+- Auto-deploys on every push to `main` (Render watches the repo)
+- Flyway ran V1–V5 migrations against the Render Postgres instance on first boot
+- Free tier — instance spins down after ~15 min inactivity; first request after sleep takes ~30s to wake up
+
 ---
 
 ## What Needs To Be Done
 
-### Immediate Next Steps
-- [ ] **Deploy backend to Render** — set `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS` env vars in Render dashboard; Flyway will automatically apply V1–V5 on first startup
+### Cron Job (next up — build in order)
 
-### User Features
-- [x] `GET /categories` — list all available categories (authenticated)
-- [x] `GET /user/categories` — list subscribed categories for current user
-- [x] `PUT /user/categories` — bulk replace subscriptions (full desired state)
-- [x] `GET /user/me` — return current user profile
-- [x] `PUT /user/preferences` — update notify_email, notify_sms
+**Component 1: Guardian API client**
+- [ ] New `client/GuardianClient.java` — fetches today's articles (title + URL) for a given `guardian_key` using Spring `RestClient`
+- [ ] New env var: `GUARDIAN_API_KEY`
+- [ ] No new dependencies (uses built-in Spring `RestClient`)
 
-### Digest / Portal Features
-- [x] `GET /digests` — list digests for the user's subscribed categories (filterable by `?categoryId=`, `?date=`, `?keyword=`)
-- [x] `GET /digests/{id}` — full digest detail with long summary and article URLs
+**Component 2: OpenAI integration**
+- [ ] New `client/OpenAiClient.java` — sends article list for a category, gets back `{ shortSummary, longSummary }` as structured JSON
+- [ ] New env var: `OPENAI_API_KEY`
+- [ ] Requires adding OpenAI dependency to `pom.xml` (confirm before adding)
 
-### Cron Job
-- [ ] Guardian API client (fetch articles per category)
-- [ ] OpenAI integration (generate short + long summaries)
-- [ ] `CategoryDigest` writer service
-- [ ] Email notification via Resend
-- [ ] SMS notification via Twilio
-- [ ] Spring `@Scheduled` cron trigger (daily)
+**Component 3: Notification service**
+- [ ] New `service/NotificationService.java` — given a user + map of `categoryName → shortSummary`, sends email via Resend and/or SMS via Twilio based on user's `notifyEmail`/`notifySms` flags
+- [ ] New env vars: `RESEND_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+- [ ] Requires adding Resend and Twilio dependencies to `pom.xml` (confirm before adding)
+
+**Component 4: Cron orchestrator**
+- [ ] New `cron/DigestCronJob.java` — `@Scheduled` daily job: fetch articles → generate summaries → write `CategoryDigest` rows → notify all users
+- [ ] Add `@EnableScheduling` to `NewsNotifierApplication.java`
 
 ### Frontend
-- [ ] Initialize React + TypeScript app (Vite or Create React App)
+- [ ] Initialize React + TypeScript app (Vite)
 - [ ] Auth pages: Landing, Login, Signup (2-step)
-- [ ] Portal page: digest list with date/category filter
-- [ ] Digest detail view with article links
+- [ ] Portal page: digest list with date/category/keyword filter
 - [ ] Settings page: notification preferences + category management
 
 ### Deployment
-- [ ] Configure Render service for backend (set production env vars in Render dashboard)
-- [ ] Configure Vercel for frontend
-- [ ] Wire up CI/CD (GitHub → Render auto-deploy on push to `main`)
+- [x] Backend deployed to Render (auto-deploys on push to `main`)
+- [ ] Add cron job env vars to Render dashboard (`GUARDIAN_API_KEY`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `TWILIO_*`)
+- [ ] Deploy frontend to Vercel
 
 ---
 

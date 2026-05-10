@@ -219,6 +219,20 @@ are both set to "No updates today" and article_urls is an empty array.
 
 ---
 
+### Digest endpoints: single DTO, `@Query`, 404 for not-subscribed, no pagination
+
+**Decision:** Both `GET /digests` and `GET /digests/{id}` return the same full `DigestResponse` record (`id`, `categoryId`, `categoryName`, `digestDate`, `shortSummary`, `longSummary`, `articleUrls`). A single `@Query` JPQL method handles all filter combinations (category, date, keyword) via nullable params. Accessing a digest for a category the user isn't subscribed to returns 404, identical to not-found. No pagination.
+
+**Rejected alternatives:**
+- Two DTOs (summary list + full detail) — rejected because the portal wireframe shows `longSummary` on cards; a lightweight list DTO would force a second request per card with no real benefit at this scale
+- Multiple derived query methods (one per filter combo) — rejected in favor of a single `@Query` that handles all combos cleanly and extends trivially for additional filters
+- 403 for not-subscribed — rejected to avoid leaking that a digest exists, consistent with the email-enumeration-prevention pattern in `UserService`
+- Pagination — rejected; with < 5 users and 8 categories the dataset is small enough to return everything
+
+**Keyword filter:** searches both `shortSummary` and `longSummary` via `LOWER() LIKE` in JPQL (case-insensitive). Handled in the same `@Query` method as category and date filters.
+
+---
+
 ### `guardian_key` excluded from `CategoryResponse`
 
 **Decision:** `CategoryResponse` exposes only `id` and `name`. The `guardian_key` field is never returned by any API endpoint.
