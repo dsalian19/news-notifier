@@ -233,6 +233,54 @@ are both set to "No updates today" and article_urls is an empty array.
 
 ---
 
+### Cron job schedule: 1am UTC, previous day's articles
+
+**Decision:** The cron job runs at 1am UTC daily (`0 0 1 * * *`) and fetches articles for the previous calendar day.
+
+**Why:** Running at 1am gives the previous day's news cycle time to fully publish before summarization. UTC avoids timezone ambiguity across environments.
+
+---
+
+### Guardian API: full bodyText, capped at 30 articles per category
+
+**Decision:** Each Guardian API call requests full `bodyText` (plain text) via `show-fields=bodyText` with `page-size=30`. No pagination.
+
+**Rejected alternatives:**
+- Title + `trailText` only — rejected because OpenAI would have very little signal to write a meaningful summary; the whole point is to digest real article content
+- Full body with no cap — rejected to avoid unbounded token usage; 30 articles is well above the typical daily count for any category
+
+**Why 30:** A single category rarely exceeds 30 articles in a day. Guardian returns results by relevance/recency so the most important stories appear first.
+
+---
+
+### OpenAI: single structured call per category, GPT-4o-mini
+
+**Decision:** One OpenAI call per category returns both `shortSummary` and `longSummary` as structured JSON. Model: `gpt-4o-mini`.
+
+**Rejected alternatives:**
+- Two separate calls (one for short, one for long) — rejected; a single structured call returning both fields is cheaper and the quality is equivalent
+- GPT-4o — rejected for cost; GPT-4o-mini handles summarization well and is ~30x cheaper at this volume
+
+---
+
+### Notifications: combined email + SMS, same shortSummary for both
+
+**Decision:** One email per user covers all subscribed categories. One SMS per user with the same short summaries. Twilio handles multi-part SMS splitting automatically. Categories with no articles include "No updates today" rather than being omitted.
+
+**Rejected alternatives:**
+- Per-category emails — rejected; noisier for users subscribed to many categories
+- Separate AI-generated SMS summary — rejected; adds an extra OpenAI call and a new DB field for marginal benefit. The `shortSummary` is already concise enough for SMS.
+
+---
+
+### Cron error handling: skip and continue per category
+
+**Decision:** If Guardian or OpenAI fails for a category, log the error, skip that category, and continue with the rest. Users receive a partial digest rather than nothing.
+
+**Rejected alternative:** Abort the entire job on any failure — rejected because a single flaky API call would silence all notifications for all users.
+
+---
+
 ### `guardian_key` excluded from `CategoryResponse`
 
 **Decision:** `CategoryResponse` exposes only `id` and `name`. The `guardian_key` field is never returned by any API endpoint.

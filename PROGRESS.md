@@ -124,30 +124,41 @@ Two authenticated endpoints for the portal.
 - Auto-deploys on every push to `main` (Render watches the repo)
 - Flyway ran V1–V5 migrations against the Render Postgres instance on first boot
 - Free tier — instance spins down after ~15 min inactivity; first request after sleep takes ~30s to wake up
+- UptimeRobot configured to ping the backend every 5 minutes, keeping the instance awake so the cron job fires reliably at 1am UTC
+
+### 11. Guardian API Client (Cron Job — Component 1)
+- `client/GuardianClient.java` — fetches previous day's articles for a given `guardian_key` using Spring `RestClient` (no new dependency)
+- `dto/GuardianArticle.java` — record with `title`, `webUrl`, `bodyText`
+- Fetches up to 30 articles per category with full `bodyText` via `show-fields=bodyText`
+- Private inner records handle Guardian API JSON deserialization (`GuardianApiResponse`, `GuardianResponseBody`, `GuardianResult`, `GuardianFields`)
+- On any failure: logs the error and returns empty list so the cron job can continue with other categories
+- New env var: `GUARDIAN_API_KEY` — added to `application.properties` and `.env.example`; must be set in Render dashboard for production
 
 ---
 
 ## What Needs To Be Done
 
-### Cron Job (next up — build in order)
-
-**Component 1: Guardian API client**
-- [ ] New `client/GuardianClient.java` — fetches today's articles (title + URL) for a given `guardian_key` using Spring `RestClient`
-- [ ] New env var: `GUARDIAN_API_KEY`
-- [ ] No new dependencies (uses built-in Spring `RestClient`)
+### Cron Job (build in order)
 
 **Component 2: OpenAI integration**
-- [ ] New `client/OpenAiClient.java` — sends article list for a category, gets back `{ shortSummary, longSummary }` as structured JSON
+- [ ] New `client/OpenAiClient.java` — sends up to 30 articles (full bodyText) for a category, returns `{ shortSummary, longSummary }` as structured JSON in a single call
+- [ ] Model: `gpt-4o-mini`
 - [ ] New env var: `OPENAI_API_KEY`
 - [ ] Requires adding OpenAI dependency to `pom.xml` (confirm before adding)
 
 **Component 3: Notification service**
-- [ ] New `service/NotificationService.java` — given a user + map of `categoryName → shortSummary`, sends email via Resend and/or SMS via Twilio based on user's `notifyEmail`/`notifySms` flags
+- [ ] New `service/NotificationService.java` — given a user + list of `(categoryName, shortSummary)` pairs, sends a combined email via Resend and/or combined SMS via Twilio based on user's `notifyEmail`/`notifySms` flags
+- [ ] Email: one message per user, all subscribed categories' short summaries + link to portal
+- [ ] SMS: same short summaries combined into one message; Twilio handles multi-part splitting automatically
+- [ ] Categories with no articles: include "No updates today" in notification
 - [ ] New env vars: `RESEND_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
 - [ ] Requires adding Resend and Twilio dependencies to `pom.xml` (confirm before adding)
 
 **Component 4: Cron orchestrator**
-- [ ] New `cron/DigestCronJob.java` — `@Scheduled` daily job: fetch articles → generate summaries → write `CategoryDigest` rows → notify all users
+- [ ] New `cron/DigestCronJob.java` — `@Scheduled` at `0 0 1 * * *` (1am UTC): fetch articles → generate summaries → write `CategoryDigest` rows → notify all users
+- [ ] Uses previous day's date for all Guardian API calls
+- [ ] On failure for any category: log, skip, continue with remaining categories
+- [ ] If 0 articles returned for a category: write digest with `shortSummary = longSummary = "No updates today"` and empty `articleUrls`
 - [ ] Add `@EnableScheduling` to `NewsNotifierApplication.java`
 
 ### Frontend

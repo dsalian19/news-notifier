@@ -36,7 +36,7 @@
 ## Local Development
 - Environment variables are loaded from `backend/.env` (gitignored — never committed)
 - Copy `backend/.env.example` to `backend/.env` and fill in local values to get started
-- Required env vars: `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS`
+- Required env vars: `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS`, `GUARDIAN_API_KEY`
 - Generate a JWT secret: `openssl rand -base64 64 | tr -d '\n'`
 - Source env vars before running Maven: `set -a && source backend/.env && set +a` (`set -a` is required so vars are exported to the Maven subprocess — plain `source` won't work)
 - Run migrations: `mvn -f backend/pom.xml flyway:migrate -Dflyway.url=$DATABASE_URL -Dflyway.user=$DB_USERNAME -Dflyway.password=$DB_PASSWORD`
@@ -66,6 +66,7 @@
 - Render is configured with Docker context `./backend` and Dockerfile path `./backend/Dockerfile`
 - Auto-deploys on every push to `main`
 - All production env vars are set in the Render dashboard only — never in files
+- UptimeRobot pings the backend every 5 minutes to prevent Render free-tier spin-down, ensuring the cron job fires reliably
 
 ## Known Compilation Gotcha
 - Lombok generates getters, setters, and builders via annotation processing at compile time
